@@ -3,19 +3,30 @@ import { Package, Plus, Search, Trash2, X } from 'lucide-react';
 import catalogData from '../data/items_catalog.json';
 import ItemIcon from './ItemIcon';
 
+const CANONICAL_SIX_TYPES = [
+  'sneakers',
+  'hardcover_book',
+  'rolled_tshirt',
+  'folded_denim',
+  'laptop_15',
+  'tsa_liquid_pouch',
+];
+
 export default function Sidebar({ items = [], onAddItem, onRemoveItem, onClearItems }) {
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Filter catalog items by search query
-  const filteredCatalog = catalogData.filter((item) => {
-    const q = searchQuery.toLowerCase().trim();
-    if (!q) return true;
-    return (
-      item.name.toLowerCase().includes(q) ||
-      item.type.toLowerCase().includes(q) ||
-      (item.tags && item.tags.some((t) => t.toLowerCase().includes(q)))
-    );
-  });
+  // Filter catalog items by search query and preserve 6 canonical items UI
+  const filteredCatalog = catalogData
+    .filter((item) => CANONICAL_SIX_TYPES.includes(item.type))
+    .filter((item) => {
+      const q = searchQuery.toLowerCase().trim();
+      if (!q) return true;
+      return (
+        item.name.toLowerCase().includes(q) ||
+        item.type.toLowerCase().includes(q) ||
+        (item.tags && item.tags.some((t) => t.toLowerCase().includes(q)))
+      );
+    });
 
   return (
     <aside className="w-full lg:w-80 xl:w-96 flex flex-col space-y-4 select-none">

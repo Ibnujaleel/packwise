@@ -6,9 +6,12 @@ import PackControls from './components/PackControls';
 import PackingStatus from './components/PackingStatus';
 import SuitcaseDimensions from './components/SuitcaseDimensions';
 import FooterStatus from './components/FooterStatus';
+import { packItems } from './engine/index.js';
 
 export default function App() {
   const [items, setItems] = useState([]);
+  const [packingResult, setPackingResult] = useState(null);
+  const [packingError, setPackingError] = useState(null);
   const idCounterRef = useRef({});
 
   // Add an item instance with a guaranteed unique instance ID
@@ -32,17 +35,55 @@ export default function App() {
     };
 
     setItems((prev) => [...prev, newInstance]);
+    // Reset packing state when item list changes
+    setPackingResult(null);
+    setPackingError(null);
   };
 
   // Remove a specific instance by its unique ID
   const handleRemoveItem = (instanceId) => {
     setItems((prev) => prev.filter((item) => item.id !== instanceId));
+    setPackingResult(null);
+    setPackingError(null);
   };
 
   // Clear all items from the packing list
   const handleClearItems = () => {
     setItems([]);
+    setPackingResult(null);
+    setPackingError(null);
   };
+
+  // Reset packing result back to initial staging view
+  const handleResetPacking = () => {
+    setPackingResult(null);
+    setPackingError(null);
+  };
+
+  // Execute packing using real imported engine
+  const handlePack = () => {
+    if (items.length === 0) return;
+
+    const request = {
+      items: items.map((item) => ({
+        id: item.id,
+        type: item.type,
+        overrides: item.overrides ?? {},
+      })),
+    };
+
+    const response = packItems(request);
+
+    if (response.status === 'success') {
+      setPackingResult(response);
+      setPackingError(null);
+    } else {
+      setPackingResult(null);
+      setPackingError(response);
+    }
+  };
+
+  const isPacked = Boolean(packingResult && packingResult.status === 'success');
 
   return (
     <div className="min-h-screen bg-[#070a12] text-slate-100 flex flex-col font-sans selection:bg-blue-600 selection:text-white">
@@ -62,21 +103,36 @@ export default function App() {
           />
 
           {/* Center Column: Interactive 3D Suitcase & Item Models Scene */}
-          <Scene items={items} />
+          <Scene
+            items={items}
+            packingResult={packingResult}
+          />
 
           {/* Right Column: Controls, Packing Status, Suitcase Dimensions */}
           <div className="w-full lg:w-72 xl:w-80 shrink-0 flex flex-col gap-4">
             <PackControls
               itemCount={items.length}
+              isPacked={isPacked}
+              hasError={Boolean(packingError)}
+              onPack={handlePack}
+              onResetPacking={handleResetPacking}
               onClearItems={handleClearItems}
             />
-            <PackingStatus items={items} />
+            <PackingStatus
+              items={items}
+              packingResult={packingResult}
+              packingError={packingError}
+            />
             <SuitcaseDimensions />
           </div>
         </div>
 
         {/* Bottom Status Area */}
-        <FooterStatus items={items} />
+        <FooterStatus
+          items={items}
+          packingResult={packingResult}
+          packingError={packingError}
+        />
       </main>
     </div>
   );
